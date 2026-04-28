@@ -631,14 +631,81 @@ body {
 
 /* ── Add Recipe Panel ────────────────────────────── */
 .add-box {
-  max-width: 520px;
+  max-width: 560px;
   padding: 36px 32px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 .add-box h2 { font-size: 1.2rem; }
 .add-hint { font-size: .875rem; color: var(--text-muted); line-height: 1.5; }
+
+.add-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 4px;
+}
+.add-tab {
+  flex: 1;
+  padding: 7px;
+  border: none;
+  border-radius: 6px;
+  font-size: .875rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-muted);
+  transition: background .15s, color .15s;
+}
+.add-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+.manual-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.manual-field label {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.field-required { color: var(--danger); }
+.field-optional { font-weight: 400; color: var(--text-muted); font-size: .75rem; }
+
+.manual-field input,
+.manual-field textarea {
+  width: 100%;
+  padding: 9px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .875rem;
+  font-family: inherit;
+  outline: none;
+  background: var(--bg);
+  transition: border-color .15s;
+  resize: vertical;
+}
+.manual-field input:focus,
+.manual-field textarea:focus { border-color: var(--accent); }
+
+.manual-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+#add-manual-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 #add-url-input {
   width: 100%;

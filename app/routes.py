@@ -1,7 +1,9 @@
 import json
+import uuid
 from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from typing import List
 
 from .database import get_conn
 from .scraper import scrape_url
@@ -139,6 +141,53 @@ def patch_recipe(recipe_id: int, req: PatchRecipeRequest, current_user: dict = D
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail='Recipe not found')
     return {'ok': True}
+
+
+class ManualRecipeRequest(BaseModel):
+    title: str
+    description: str = ''
+    image_url: str = ''
+    category: str = ''
+    cook_time: str = ''
+    yields: str = ''
+    ingredients: List[str] = []
+    instructions: List[str] = []
+
+
+@router.post('/recipes/manual')
+def add_manual_recipe(req: ManualRecipeRequest, current_user: dict = Depends(get_current_user)):
+    if not req.title.strip():
+        raise HTTPException(status_code=400, detail='Title is required')
+
+    url = f'manual:{uuid.uuid4()}'
+    ingredients = [i for i in req.ingredients if i.strip()]
+    instructions = [i for i in req.instructions if i.strip()]
+
+    conn = get_conn()
+    conn.execute(
+        '''INSERT INTO recipes
+           (url, title, image_url, source_site, category, ingredients, instructions,
+            description, cook_time, yields, scrape_status, source_file, user_id)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+        (
+            url, req.title.strip(),
+            req.image_url.strip() or None,
+            'Manual entry',
+            req.category.strip() or None,
+            json.dumps(ingredients), json.dumps(instructions),
+            req.description.strip() or None,
+            req.cook_time.strip() or None,
+            req.yields.strip() or None,
+            'ok', 'manual', current_user['id'],
+        )
+    )
+    conn.commit()
+    row = conn.execute(
+        'SELECT * FROM recipes WHERE url = ? AND user_id = ?',
+        (url, current_user['id'])
+    ).fetchone()
+    conn.close()
+    return _row_to_detail(row)
 
 
 @router.delete('/recipes/{recipe_id}')

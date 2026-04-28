@@ -33,6 +33,10 @@ const addClose      = document.getElementById('add-close');
 const addUrlInput   = document.getElementById('add-url-input');
 const addSubmitBtn  = document.getElementById('add-submit-btn');
 const addStatus     = document.getElementById('add-status');
+const addTabBtns    = document.querySelectorAll('.add-tab');
+const addUrlPanel   = document.getElementById('add-url-panel');
+const addManualPanel = document.getElementById('add-manual-panel');
+const manualForm    = document.getElementById('manual-form');
 
 // Auth form elements
 const authTabs      = document.querySelectorAll('.auth-tab');
@@ -360,6 +364,11 @@ function openAdd() {
   addUrlInput.value = '';
   addStatus.textContent = '';
   addStatus.className = '';
+  manualForm.reset();
+  // always open on URL tab
+  addTabBtns.forEach(t => t.classList.toggle('active', t.dataset.tab === 'url'));
+  addUrlPanel.hidden = false;
+  addManualPanel.hidden = true;
   document.body.style.overflow = 'hidden';
   addUrlInput.focus();
 }
@@ -410,6 +419,67 @@ async function submitAdd() {
     addSubmitBtn.disabled = false;
   }
 }
+
+// Add modal tabs
+addTabBtns.forEach(tab => {
+  tab.addEventListener('click', () => {
+    addTabBtns.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    addUrlPanel.hidden  = tab.dataset.tab !== 'url';
+    addManualPanel.hidden = tab.dataset.tab !== 'manual';
+    addStatus.textContent = '';
+    addStatus.className = '';
+  });
+});
+
+// Manual entry submit
+manualForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const title = document.getElementById('manual-title').value.trim();
+  if (!title) return;
+
+  const ingredients = document.getElementById('manual-ingredients').value
+    .split('\n').map(s => s.trim()).filter(Boolean);
+  const instructions = document.getElementById('manual-instructions').value
+    .split('\n').map(s => s.trim()).filter(Boolean);
+
+  const btn = manualForm.querySelector('button[type=submit]');
+  btn.disabled = true;
+  btn.textContent = 'Adding…';
+  addStatus.textContent = '';
+  addStatus.className = '';
+
+  try {
+    const recipe = await fetchJson('api/recipes/manual', {
+      method: 'POST',
+      body: JSON.stringify({
+        title,
+        category: document.getElementById('manual-category').value.trim(),
+        cook_time: document.getElementById('manual-cook-time').value.trim(),
+        yields: document.getElementById('manual-yields').value.trim(),
+        image_url: document.getElementById('manual-image-url').value.trim(),
+        ingredients,
+        instructions,
+      }),
+    });
+    addStatus.innerHTML = `✓ Added: <strong>${esc(recipe.title)}</strong>`;
+    addStatus.className = 'success';
+    if (recipe.category && !Array.from(categoryFilter.options).some(o => o.value === recipe.category)) {
+      const opt = document.createElement('option');
+      opt.value = recipe.category; opt.textContent = recipe.category;
+      categoryFilter.appendChild(opt);
+    }
+    allRecipes.unshift(recipe);
+    applyFilters();
+    setTimeout(() => { closeAdd(); openDetail(recipe.id); }, 1200);
+  } catch (err) {
+    addStatus.textContent = '✗ ' + err.message;
+    addStatus.className = 'error';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Add Recipe';
+  }
+});
 
 // ── Keyboard ──────────────────────────────────────────────
 

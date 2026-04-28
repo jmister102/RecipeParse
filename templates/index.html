@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RecipeParse</title>
-  <link rel="stylesheet" href="static/style.css?v=7">
+  <link rel="stylesheet" href="static/style.css?v=8">
 </head>
 <body>
 
@@ -125,13 +125,60 @@
     <div class="modal-box add-box">
       <button class="modal-close" id="add-close" aria-label="Close">✕</button>
       <h2>Add a Recipe</h2>
-      <p class="add-hint">Paste a recipe URL and we'll extract the title, image, ingredients, and instructions.</p>
-      <input type="url" id="add-url-input" placeholder="https://..." autocomplete="off">
-      <button id="add-submit-btn" class="btn-primary">Scrape &amp; Add</button>
+
+      <div class="add-tabs">
+        <button class="add-tab active" data-tab="url">By URL</button>
+        <button class="add-tab" data-tab="manual">Enter manually</button>
+      </div>
+
+      <!-- URL panel -->
+      <div id="add-url-panel">
+        <p class="add-hint">Paste a recipe URL and we'll extract the title, image, ingredients, and instructions.</p>
+        <input type="url" id="add-url-input" placeholder="https://..." autocomplete="off">
+        <button id="add-submit-btn" class="btn-primary">Scrape &amp; Add</button>
+      </div>
+
+      <!-- Manual panel -->
+      <div id="add-manual-panel" hidden>
+        <form id="manual-form" autocomplete="off">
+          <div class="manual-field">
+            <label>Title <span class="field-required">*</span></label>
+            <input type="text" id="manual-title" placeholder="Recipe name" required>
+          </div>
+          <div class="manual-row">
+            <div class="manual-field">
+              <label>Category</label>
+              <input type="text" id="manual-category" placeholder="e.g. Dinner">
+            </div>
+            <div class="manual-field">
+              <label>Cook time</label>
+              <input type="text" id="manual-cook-time" placeholder="e.g. 30 mins">
+            </div>
+          </div>
+          <div class="manual-field">
+            <label>Servings</label>
+            <input type="text" id="manual-yields" placeholder="e.g. 4 servings">
+          </div>
+          <div class="manual-field">
+            <label>Image URL <span class="field-optional">optional</span></label>
+            <input type="url" id="manual-image-url" placeholder="https://...">
+          </div>
+          <div class="manual-field">
+            <label>Ingredients <span class="field-optional">one per line</span></label>
+            <textarea id="manual-ingredients" rows="5" placeholder="2 cups flour&#10;1 tsp salt&#10;3 eggs"></textarea>
+          </div>
+          <div class="manual-field">
+            <label>Instructions <span class="field-optional">one step per line</span></label>
+            <textarea id="manual-instructions" rows="5" placeholder="Preheat oven to 350°F&#10;Mix dry ingredients&#10;Bake for 30 minutes"></textarea>
+          </div>
+          <button type="submit" class="btn-primary btn-full">Add Recipe</button>
+        </form>
+      </div>
+
       <div id="add-status"></div>
     </div>
   </div>
 
-  <script src="static/app.js?v=7"></script>
+  <script src="static/app.js?v=8"></script>
 </body>
 </html>
