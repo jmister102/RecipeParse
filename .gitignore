@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+
+# Database & personal data
+data/recipes.db
+data/*.db
+notes.json
+recipe_bookmarks.html
+
+# Secrets / local config
+.env
+.env.*
+*.secret
+
+# Editor / tool
+.claude/
+.vscode/
+.idea/
