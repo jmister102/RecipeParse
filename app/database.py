@@ -43,11 +43,11 @@ def init_db():
         );
     """)
 
-    # Migrate existing recipes table: add user_id if missing
+    # Idempotent column migrations
     cols = [row[1] for row in conn.execute('PRAGMA table_info(recipes)').fetchall()]
     if 'user_id' not in cols:
         conn.execute('ALTER TABLE recipes ADD COLUMN user_id INTEGER REFERENCES users(id)')
-        conn.commit()
-
+    if 'notes' not in cols:
+        conn.execute('ALTER TABLE recipes ADD COLUMN notes TEXT')
     conn.commit()
     conn.close()

@@ -315,7 +315,31 @@ async function openDetail(id) {
           <div class="detail-section"><h3>Ingredients</h3>${ingredientsHtml || '<p style="color:var(--text-muted);font-size:.875rem">Not available</p>'}</div>
           <div class="detail-section"><h3>Instructions</h3>${instructionsHtml || '<p style="color:var(--text-muted);font-size:.875rem">Not available</p>'}</div>
         </div>` : ''}
+        <div class="notes-section">
+          <h3>My Notes</h3>
+          <textarea class="notes-textarea" id="notes-textarea" placeholder="Add your notes, substitutions, tips…">${esc(r.notes || '')}</textarea>
+          <span class="notes-status" id="notes-status"></span>
+        </div>
       </div>`;
+    const textarea = document.getElementById('notes-textarea');
+    const notesStatus = document.getElementById('notes-status');
+    let saveTimer = null;
+    textarea.addEventListener('input', () => {
+      notesStatus.textContent = '';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        try {
+          await fetchJson(`api/recipes/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ notes: textarea.value }),
+          });
+          notesStatus.textContent = 'Saved ✓';
+          setTimeout(() => { notesStatus.textContent = ''; }, 2000);
+        } catch {
+          notesStatus.textContent = 'Save failed';
+        }
+      }, 800);
+    });
   } catch (err) {
     detailContent.innerHTML = `<div class="detail-body"><p style="color:var(--danger)">Error: ${esc(err.message)}</p></div>`;
   }

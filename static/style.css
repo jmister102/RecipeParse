@@ -487,6 +487,46 @@ body {
 }
 .no-data-notice a:hover { text-decoration: underline; }
 
+/* ── Notes ───────────────────────────────────────── */
+.notes-section {
+  margin-top: 28px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+.notes-section h3 {
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.notes-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .9rem;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  background: var(--bg);
+  transition: border-color .15s;
+}
+.notes-textarea:focus { border-color: var(--accent); }
+
+.notes-status {
+  font-size: .75rem;
+  color: #16a34a;
+  margin-top: 4px;
+  display: block;
+  min-height: 1em;
+}
+
 /* ── Add Recipe Panel ────────────────────────────── */
 .add-box {
   max-width: 520px;

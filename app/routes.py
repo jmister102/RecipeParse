@@ -30,6 +30,7 @@ def _row_to_detail(row):
     card = _row_to_card(row)
     card['ingredients'] = json.loads(row['ingredients'] or '[]')
     card['instructions'] = json.loads(row['instructions'] or '[]')
+    card['notes'] = row['notes'] or ''
     return card
 
 
@@ -120,6 +121,24 @@ def add_recipe(req: AddRecipeRequest, current_user: dict = Depends(get_current_u
     ).fetchone()
     conn.close()
     return _row_to_detail(row)
+
+
+class PatchRecipeRequest(BaseModel):
+    notes: str
+
+
+@router.patch('/recipes/{recipe_id}')
+def patch_recipe(recipe_id: int, req: PatchRecipeRequest, current_user: dict = Depends(get_current_user)):
+    conn = get_conn()
+    result = conn.execute(
+        'UPDATE recipes SET notes = ? WHERE id = ? AND user_id = ?',
+        (req.notes.strip() or None, recipe_id, current_user['id'])
+    )
+    conn.commit()
+    conn.close()
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail='Recipe not found')
+    return {'ok': True}
 
 
 @router.delete('/recipes/{recipe_id}')
