@@ -3,39 +3,75 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Recipe Books</title>
-  <link rel="stylesheet" href="static/style.css?v=6">
+  <title>RecipeParse</title>
+  <link rel="stylesheet" href="static/style.css?v=7">
 </head>
 <body>
 
   <!-- Auth View (shown when logged out) -->
   <div id="auth-view">
-    <div class="auth-card">
-      <div class="auth-logo">🍽️</div>
-      <h1 class="auth-title">Recipe Books</h1>
-      <p class="auth-subtitle">Save and organize your favorite recipes.</p>
+    <div class="landing-wrap">
 
-      <div class="auth-tabs">
-        <button class="auth-tab active" data-tab="login">Sign in</button>
-        <button class="auth-tab" data-tab="register">Create account</button>
+      <!-- Left: marketing -->
+      <div class="landing-left">
+        <div class="landing-brand">
+          <span class="landing-logo">🍽️</span>
+          <span class="landing-name">RecipeParse</span>
+        </div>
+        <h1 class="landing-headline">Save recipes.<br>Just the recipe.</h1>
+        <p class="landing-sub">Paste any URL. We pull out the photo, ingredients, and steps — and save them to your private collection. No subscriptions, no noise.</p>
+        <div class="landing-features">
+          <div class="landing-feature">
+            <div class="lf-icon">✂️</div>
+            <div>
+              <div class="lf-title">Skip the story</div>
+              <div class="lf-desc">No blog posts, no ads, no endless scrolling. Just the ingredients and instructions.</div>
+            </div>
+          </div>
+          <div class="landing-feature">
+            <div class="lf-icon">🔒</div>
+            <div>
+              <div class="lf-title">Saved forever</div>
+              <div class="lf-desc">If the original site goes down, gets paywalled, or disappears — your recipe is still here.</div>
+            </div>
+          </div>
+          <div class="landing-feature">
+            <div class="lf-icon">✏️</div>
+            <div>
+              <div class="lf-title">Your notes</div>
+              <div class="lf-desc">Add substitutions, tweaks, and tips. Your thoughts saved right alongside the recipe.</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Login form -->
-      <form id="login-form" class="auth-form" autocomplete="on">
-        <input type="text" id="login-username" placeholder="Username" autocomplete="username" required>
-        <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
-        <button type="submit" class="btn-primary btn-full">Sign in</button>
-        <div id="login-error" class="auth-error"></div>
-      </form>
+      <!-- Right: auth form -->
+      <div class="landing-right">
+        <div class="auth-card">
+          <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="login">Sign in</button>
+            <button class="auth-tab" data-tab="register">Create account</button>
+          </div>
 
-      <!-- Register form -->
-      <form id="register-form" class="auth-form" hidden autocomplete="off">
-        <input type="text" id="reg-username" placeholder="Username (letters, numbers, _)" autocomplete="username" required>
-        <input type="email" id="reg-email" placeholder="Email address" autocomplete="email" required>
-        <input type="password" id="reg-password" placeholder="Password (8+ characters)" autocomplete="new-password" required>
-        <button type="submit" class="btn-primary btn-full">Create account</button>
-        <div id="register-error" class="auth-error"></div>
-      </form>
+          <!-- Login form -->
+          <form id="login-form" class="auth-form" autocomplete="on">
+            <input type="text" id="login-username" placeholder="Username" autocomplete="username" required>
+            <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
+            <button type="submit" class="btn-primary btn-full">Sign in</button>
+            <div id="login-error" class="auth-error"></div>
+          </form>
+
+          <!-- Register form -->
+          <form id="register-form" class="auth-form" hidden autocomplete="off">
+            <input type="text" id="reg-username" placeholder="Username (letters, numbers, _)" autocomplete="username" required>
+            <input type="email" id="reg-email" placeholder="Email address" autocomplete="email" required>
+            <input type="password" id="reg-password" placeholder="Password (8+ characters)" autocomplete="new-password" required>
+            <button type="submit" class="btn-primary btn-full">Create account</button>
+            <div id="register-error" class="auth-error"></div>
+          </form>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -45,7 +81,7 @@
     <!-- Header -->
     <header class="site-header">
       <div class="header-inner">
-        <h1 class="site-title">Recipe Books</h1>
+        <h1 class="site-title">RecipeParse</h1>
         <div class="header-controls">
           <input type="search" id="search-input" placeholder="Search recipes..." autocomplete="off">
           <select id="category-filter">
@@ -96,6 +132,6 @@
     </div>
   </div>
 
-  <script src="static/app.js?v=6"></script>
+  <script src="static/app.js?v=7"></script>
 </body>
 </html>
