@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RecipeParse</title>
-  <link rel="stylesheet" href="static/style.css?v=9">
+  <link rel="stylesheet" href="static/style.css?v=10">
 </head>
 <body>
 
@@ -129,6 +129,7 @@
 
       <div class="add-tabs">
         <button class="add-tab active" data-tab="url">By URL</button>
+        <button class="add-tab" data-tab="photo">By Photo</button>
         <button class="add-tab" data-tab="manual">Enter manually</button>
       </div>
 
@@ -137,6 +138,19 @@
         <p class="add-hint">Paste a recipe URL and we'll extract the title, image, ingredients, and instructions.</p>
         <input type="url" id="add-url-input" placeholder="https://..." autocomplete="off">
         <button id="add-submit-btn" class="btn-primary">Scrape &amp; Add</button>
+      </div>
+
+      <!-- Photo OCR panel -->
+      <div id="add-photo-panel" hidden>
+        <p class="add-hint">Upload a photo or screenshot of a recipe — Claude will extract the ingredients and instructions automatically.</p>
+        <label class="photo-dropzone" id="photo-dropzone" tabindex="0" role="button" aria-label="Choose recipe photo">
+          <input type="file" id="photo-file-input" accept="image/*" hidden>
+          <div class="photo-dropzone-inner" id="photo-dropzone-inner">
+            <span class="photo-dropzone-icon">📷</span>
+            <span class="photo-dropzone-text">Click to choose a photo<br><small>or drag &amp; drop here</small></span>
+          </div>
+        </label>
+        <button id="photo-submit-btn" class="btn-primary btn-full" disabled>Extract &amp; Add Recipe</button>
       </div>
 
       <!-- Manual panel -->
@@ -180,6 +194,6 @@
     </div>
   </div>
 
-  <script src="static/app.js?v=9"></script>
+  <script src="static/app.js?v=10"></script>
 </body>
 </html>

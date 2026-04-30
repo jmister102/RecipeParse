@@ -35,10 +35,16 @@ const addClose      = document.getElementById('add-close');
 const addUrlInput   = document.getElementById('add-url-input');
 const addSubmitBtn  = document.getElementById('add-submit-btn');
 const addStatus     = document.getElementById('add-status');
-const addTabBtns    = document.querySelectorAll('.add-tab');
-const addUrlPanel   = document.getElementById('add-url-panel');
+const addTabBtns     = document.querySelectorAll('.add-tab');
+const addUrlPanel    = document.getElementById('add-url-panel');
+const addPhotoPanel  = document.getElementById('add-photo-panel');
 const addManualPanel = document.getElementById('add-manual-panel');
-const manualForm    = document.getElementById('manual-form');
+const manualForm     = document.getElementById('manual-form');
+
+const photoDropzone   = document.getElementById('photo-dropzone');
+const photoFileInput  = document.getElementById('photo-file-input');
+const photoSubmitBtn  = document.getElementById('photo-submit-btn');
+const photoDropInner  = document.getElementById('photo-dropzone-inner');
 
 // Auth form elements
 const authTabs      = document.querySelectorAll('.auth-tab');
@@ -502,15 +508,30 @@ detailOverlay.addEventListener('click', e => { if (e.target === detailOverlay) c
 
 // ── Add recipe ────────────────────────────────────────────
 
+function resetPhotoPanel() {
+  photoFileInput.value = '';
+  photoSubmitBtn.disabled = true;
+  photoDropzone.classList.remove('has-image', 'drag-over');
+  photoDropInner.innerHTML = `
+    <span class="photo-dropzone-icon">📷</span>
+    <span class="photo-dropzone-text">Click to choose a photo<br><small>or drag &amp; drop here</small></span>`;
+  photoDropInner.style.display = '';
+  // Remove any preview image
+  const prev = photoDropzone.querySelector('.photo-preview');
+  if (prev) prev.remove();
+}
+
 function openAdd() {
   addOverlay.hidden = false;
   addUrlInput.value = '';
   addStatus.textContent = '';
   addStatus.className = '';
   manualForm.reset();
+  resetPhotoPanel();
   // always open on URL tab
   addTabBtns.forEach(t => t.classList.toggle('active', t.dataset.tab === 'url'));
-  addUrlPanel.hidden = false;
+  addUrlPanel.hidden  = false;
+  addPhotoPanel.hidden = true;
   addManualPanel.hidden = true;
   document.body.style.overflow = 'hidden';
   addUrlInput.focus();
@@ -568,7 +589,8 @@ addTabBtns.forEach(tab => {
   tab.addEventListener('click', () => {
     addTabBtns.forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
-    addUrlPanel.hidden  = tab.dataset.tab !== 'url';
+    addUrlPanel.hidden   = tab.dataset.tab !== 'url';
+    addPhotoPanel.hidden  = tab.dataset.tab !== 'photo';
     addManualPanel.hidden = tab.dataset.tab !== 'manual';
     addStatus.textContent = '';
     addStatus.className = '';
@@ -621,6 +643,80 @@ manualForm.addEventListener('submit', async e => {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Add Recipe';
+  }
+});
+
+// ── Photo OCR ─────────────────────────────────────────────
+
+function setPhotoPreview(file) {
+  const url = URL.createObjectURL(file);
+  // Replace dropzone inner with preview image
+  photoDropInner.style.display = 'none';
+  let img = photoDropzone.querySelector('.photo-preview');
+  if (!img) {
+    img = document.createElement('img');
+    img.className = 'photo-preview';
+    img.alt = '';
+    photoDropzone.appendChild(img);
+  }
+  img.src = url;
+  photoDropzone.classList.add('has-image');
+  photoSubmitBtn.disabled = false;
+}
+
+photoDropzone.addEventListener('click', () => photoFileInput.click());
+photoDropzone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') photoFileInput.click(); });
+
+photoFileInput.addEventListener('change', () => {
+  const file = photoFileInput.files[0];
+  if (file) setPhotoPreview(file);
+});
+
+// Drag & drop
+photoDropzone.addEventListener('dragover', e => { e.preventDefault(); photoDropzone.classList.add('drag-over'); });
+photoDropzone.addEventListener('dragleave', () => photoDropzone.classList.remove('drag-over'));
+photoDropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  photoDropzone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    setPhotoPreview(file);
+  }
+});
+
+photoSubmitBtn.addEventListener('click', async () => {
+  const file = photoFileInput.files[0] || (() => {
+    // File may have come from drag & drop — grab from preview src isn't possible,
+    // so we rely on the file input. If empty, no-op.
+    return null;
+  })();
+  if (!file) return;
+
+  photoSubmitBtn.disabled = true;
+  addStatus.innerHTML = '<span class="spinner"></span> Extracting recipe…';
+  addStatus.className = '';
+
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('api/recipes/ocr', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      body: form,
+    });
+    const recipe = await res.json();
+    if (!res.ok) throw new Error(recipe.detail || `HTTP ${res.status}`);
+
+    addStatus.innerHTML = `✓ Extracted: <strong>${esc(recipe.title || 'Recipe')}</strong>`;
+    addStatus.className = 'success';
+    allRecipes.unshift(recipe);
+    applyFilters();
+    await loadCategories();
+    setTimeout(() => { closeAdd(); openDetail(recipe.id); }, 1200);
+  } catch (err) {
+    addStatus.textContent = '✗ ' + err.message;
+    addStatus.className = 'error';
+    photoSubmitBtn.disabled = false;
   }
 });
 

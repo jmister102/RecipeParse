@@ -1,7 +1,7 @@
 import json
 import uuid
 from urllib.parse import urlparse
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -122,6 +122,64 @@ def add_recipe(req: AddRecipeRequest, current_user: dict = Depends(get_current_u
         'SELECT * FROM recipes WHERE url = ? AND user_id = ?',
         (data['url'], current_user['id'])
     ).fetchone()
+    conn.close()
+    return _row_to_detail(row)
+
+
+ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'}
+MAX_IMAGE_BYTES = 20 * 1024 * 1024  # 20 MB
+
+
+@router.post('/recipes/ocr')
+async def ocr_recipe(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    from .ocr import extract_recipe_from_image
+
+    content_type = (file.content_type or '').split(';')[0].strip().lower()
+    if content_type not in ALLOWED_IMAGE_TYPES and not content_type.startswith('image/'):
+        raise HTTPException(status_code=415, detail='Please upload an image file (JPEG, PNG, WebP, etc.)')
+
+    image_bytes = await file.read()
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail='Image too large (max 20 MB)')
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail='Empty file')
+
+    try:
+        data = extract_recipe_from_image(image_bytes)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    url = f'ocr:{uuid.uuid4()}'
+    conn = get_conn()
+    conn.execute(
+        '''INSERT INTO recipes
+           (url, title, image_url, source_site, category, ingredients, instructions,
+            description, cook_time, yields, scrape_status, source_file, user_id)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+        (
+            url,
+            data.get('title', 'Untitled Recipe'),
+            None,
+            'Photo OCR',
+            data.get('category'),
+            json.dumps(data.get('ingredients', [])),
+            json.dumps(data.get('instructions', [])),
+            data.get('description'),
+            data.get('cook_time'),
+            data.get('yields'),
+            'ok' if (data.get('ingredients') or data.get('instructions')) else 'fallback',
+            'ocr',
+            current_user['id'],
+        ),
+    )
+    conn.commit()
+    row = conn.execute('SELECT * FROM recipes WHERE url = ? AND user_id = ?',
+                       (url, current_user['id'])).fetchone()
     conn.close()
     return _row_to_detail(row)
 
