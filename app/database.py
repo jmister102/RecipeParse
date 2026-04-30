@@ -49,5 +49,7 @@ def init_db():
         conn.execute('ALTER TABLE recipes ADD COLUMN user_id INTEGER REFERENCES users(id)')
     if 'notes' not in cols:
         conn.execute('ALTER TABLE recipes ADD COLUMN notes TEXT')
+    if 'starred' not in cols:
+        conn.execute('ALTER TABLE recipes ADD COLUMN starred INTEGER DEFAULT 0')
     conn.commit()
     conn.close()

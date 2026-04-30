@@ -7,6 +7,7 @@ let currentUser = null;
 
 let allRecipes = [];
 let filteredRecipes = [];
+let starFilterActive = false;
 
 // ── DOM refs ──────────────────────────────────────────────
 
@@ -22,7 +23,8 @@ const addBtn         = document.getElementById('add-btn');
 const gridContainer  = document.getElementById('grid-container');
 const loading        = document.getElementById('loading');
 const emptyState     = document.getElementById('empty-state');
-const statsBar       = document.getElementById('stats-bar');
+const statsBar           = document.getElementById('stats-bar');
+const starredFilterBtn   = document.getElementById('starred-filter-btn');
 
 const detailOverlay = document.getElementById('detail-overlay');
 const detailContent = document.getElementById('detail-content');
@@ -183,10 +185,12 @@ function cardHtml(recipe) {
     : `<div class="card-img-placeholder">🍽️</div>`;
   const badge = recipe.category
     ? `<span class="badge">${esc(recipe.category)}</span>` : '';
+  const starLabel = recipe.starred ? 'Remove from favorites' : 'Add to favorites';
   return `
     <article class="recipe-card" data-id="${recipe.id}" role="button" tabindex="0">
       ${img}
       <button class="card-delete" data-id="${recipe.id}" aria-label="Remove recipe" title="Remove recipe">✕</button>
+      <button class="card-star${recipe.starred ? ' starred' : ''}" data-id="${recipe.id}" aria-label="${starLabel}" title="${starLabel}">${recipe.starred ? '★' : '☆'}</button>
       <div class="card-body">
         <div class="card-title">${esc(recipe.title || 'Untitled Recipe')}</div>
         <div class="card-meta">
@@ -216,6 +220,27 @@ function renderGrid(recipes) {
       e.stopPropagation();
       deleteRecipe(r.id, r.title, card);
     });
+    card.querySelector('.card-star').addEventListener('click', async e => {
+      e.stopPropagation();
+      const btn = e.currentTarget;
+      const recipe = allRecipes.find(rc => rc.id === r.id);
+      if (!recipe) return;
+      const newStarred = !recipe.starred;
+      try {
+        await fetchJson(`api/recipes/${r.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ starred: newStarred }),
+        });
+        recipe.starred = newStarred;
+        btn.className = `card-star${newStarred ? ' starred' : ''}`;
+        btn.textContent = newStarred ? '★' : '☆';
+        const label = newStarred ? 'Remove from favorites' : 'Add to favorites';
+        btn.setAttribute('aria-label', label);
+        btn.setAttribute('title', label);
+      } catch (err) {
+        alert('Could not update favorite: ' + err.message);
+      }
+    });
     gridContainer.appendChild(card);
   });
 }
@@ -230,7 +255,8 @@ function applyFilters() {
       || (r.description || '').toLowerCase().includes(q)
       || (r.source_site || '').toLowerCase().includes(q);
     const matchCat = !cat || r.category === cat;
-    return matchQ && matchCat;
+    const matchStar = !starFilterActive || r.starred;
+    return matchQ && matchCat && matchStar;
   });
   filteredRecipes.sort((a, b) => {
     if (sort === 'title') return (a.title || '').localeCompare(b.title || '');
@@ -305,13 +331,36 @@ async function openDetail(id) {
     const noDataNotice = !hasFull
       ? `<div class="no-data-notice">Recipe details couldn't be extracted automatically.
            <a href="${esc(r.url)}" target="_blank" rel="noopener">Open original recipe ↗</a></div>` : '';
+
+    const existingCats = Array.from(categoryFilter.options)
+      .filter(o => o.value).map(o => o.value);
+    if (r.category && !existingCats.includes(r.category)) existingCats.push(r.category);
+    const catOptions = `<option value="">No category</option>` +
+      existingCats.map(c => `<option value="${esc(c)}"${c === r.category ? ' selected' : ''}>${esc(c)}</option>`).join('') +
+      `<option value="__new__">+ New category…</option>`;
+    const catDisplayHtml = r.category
+      ? `<span class="badge">${esc(r.category)}</span>`
+      : `<span class="no-category">No category</span>`;
+
     detailContent.innerHTML = `
       ${heroImg}
       <div class="detail-body">
-        <h2 class="detail-title">${esc(r.title || 'Untitled Recipe')}</h2>
+        <div class="detail-title-row">
+          <h2 class="detail-title">${esc(r.title || 'Untitled Recipe')}</h2>
+          <button class="detail-star${r.starred ? ' starred' : ''}" id="detail-star">${r.starred ? '★ Favorited' : '☆ Favorite'}</button>
+        </div>
         <div class="detail-meta">
           <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.source_site || r.url)} ↗</a>
-          ${r.category ? `<span class="badge">${esc(r.category)}</span>` : ''}
+          <span class="category-edit-wrap">
+            <span id="category-display">${catDisplayHtml}</span>
+            <button class="edit-category-btn" id="edit-category-btn" aria-label="Edit category" title="Edit category">✎</button>
+          </span>
+          <span class="category-editor" id="category-editor" hidden>
+            <select id="category-select">${catOptions}</select>
+            <input type="text" id="new-category-input" placeholder="Category name…" hidden>
+            <button class="btn-primary btn-sm" id="save-category-btn">Save</button>
+            <button class="btn-ghost btn-sm" id="cancel-category-btn">Cancel</button>
+          </span>
           <span>${cookMeta} ${yieldMeta}</span>
         </div>
         ${noDataNotice}
@@ -325,6 +374,100 @@ async function openDetail(id) {
           <span class="notes-status" id="notes-status"></span>
         </div>
       </div>`;
+
+    // ── Star toggle ──
+    const detailStar = document.getElementById('detail-star');
+    detailStar.addEventListener('click', async () => {
+      const newStarred = !r.starred;
+      try {
+        await fetchJson(`api/recipes/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ starred: newStarred }),
+        });
+        r.starred = newStarred;
+        detailStar.className = `detail-star${newStarred ? ' starred' : ''}`;
+        detailStar.textContent = newStarred ? '★ Favorited' : '☆ Favorite';
+        const recipeInAll = allRecipes.find(rc => rc.id === id);
+        if (recipeInAll) recipeInAll.starred = newStarred;
+        const cardEl = gridContainer.querySelector(`[data-id="${id}"]`);
+        if (cardEl) {
+          const btn = cardEl.querySelector('.card-star');
+          if (btn) {
+            btn.className = `card-star${newStarred ? ' starred' : ''}`;
+            btn.textContent = newStarred ? '★' : '☆';
+            const label = newStarred ? 'Remove from favorites' : 'Add to favorites';
+            btn.setAttribute('aria-label', label);
+            btn.setAttribute('title', label);
+          }
+        }
+      } catch (err) {
+        alert('Could not update favorite: ' + err.message);
+      }
+    });
+
+    // ── Category editor ──
+    const categoryDisplayEl = document.getElementById('category-display');
+    const categoryEditorEl  = document.getElementById('category-editor');
+    const editCategoryBtn   = document.getElementById('edit-category-btn');
+    const categorySelect    = document.getElementById('category-select');
+    const newCategoryInput  = document.getElementById('new-category-input');
+    const saveCategoryBtn   = document.getElementById('save-category-btn');
+    const cancelCategoryBtn = document.getElementById('cancel-category-btn');
+
+    editCategoryBtn.addEventListener('click', () => {
+      categoryDisplayEl.hidden = true;
+      editCategoryBtn.hidden   = true;
+      categoryEditorEl.hidden  = false;
+    });
+    categorySelect.addEventListener('change', () => {
+      newCategoryInput.hidden = categorySelect.value !== '__new__';
+      if (!newCategoryInput.hidden) newCategoryInput.focus();
+    });
+    cancelCategoryBtn.addEventListener('click', () => {
+      categoryDisplayEl.hidden = false;
+      editCategoryBtn.hidden   = false;
+      categoryEditorEl.hidden  = true;
+    });
+    saveCategoryBtn.addEventListener('click', async () => {
+      const newCat = categorySelect.value === '__new__'
+        ? newCategoryInput.value.trim()
+        : categorySelect.value;
+      try {
+        await fetchJson(`api/recipes/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ category: newCat }),
+        });
+        r.category = newCat || null;
+        const recipeInAll = allRecipes.find(rc => rc.id === id);
+        if (recipeInAll) recipeInAll.category = newCat || null;
+        if (newCat && !Array.from(categoryFilter.options).some(o => o.value === newCat)) {
+          const opt = document.createElement('option');
+          opt.value = newCat; opt.textContent = newCat;
+          categoryFilter.appendChild(opt);
+        }
+        categoryDisplayEl.innerHTML = newCat
+          ? `<span class="badge">${esc(newCat)}</span>`
+          : `<span class="no-category">No category</span>`;
+        categoryDisplayEl.hidden = false;
+        editCategoryBtn.hidden   = false;
+        categoryEditorEl.hidden  = true;
+        const cardEl = gridContainer.querySelector(`[data-id="${id}"]`);
+        if (cardEl) {
+          const metaEl  = cardEl.querySelector('.card-meta');
+          const badgeEl = metaEl.querySelector('.badge');
+          if (newCat) {
+            if (badgeEl) badgeEl.textContent = newCat;
+            else metaEl.insertAdjacentHTML('beforeend', `<span class="badge">${esc(newCat)}</span>`);
+          } else if (badgeEl) {
+            badgeEl.remove();
+          }
+        }
+      } catch (err) {
+        alert('Could not update category: ' + err.message);
+      }
+    });
+
+    // ── Notes ──
     const textarea = document.getElementById('notes-textarea');
     const notesStatus = document.getElementById('notes-status');
     let saveTimer = null;
@@ -495,6 +638,13 @@ document.addEventListener('keydown', e => {
 searchInput.addEventListener('input', applyFilters);
 categoryFilter.addEventListener('change', applyFilters);
 sortSelect.addEventListener('change', applyFilters);
+starredFilterBtn.addEventListener('click', () => {
+  starFilterActive = !starFilterActive;
+  starredFilterBtn.classList.toggle('active', starFilterActive);
+  starredFilterBtn.setAttribute('aria-pressed', starFilterActive);
+  starredFilterBtn.textContent = starFilterActive ? '★ Starred' : '☆ Starred';
+  applyFilters();
+});
 
 // ── Init ──────────────────────────────────────────────────
 

@@ -3,7 +3,7 @@ import uuid
 from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 from .database import get_conn
 from .scraper import scrape_url
@@ -25,6 +25,7 @@ def _row_to_card(row):
         'cook_time': row['cook_time'],
         'yields': row['yields'],
         'date_added': row['date_added'],
+        'starred': bool(row['starred']),
     }
 
 
@@ -126,15 +127,31 @@ def add_recipe(req: AddRecipeRequest, current_user: dict = Depends(get_current_u
 
 
 class PatchRecipeRequest(BaseModel):
-    notes: str
+    notes: Optional[str] = None
+    category: Optional[str] = None
+    starred: Optional[bool] = None
 
 
 @router.patch('/recipes/{recipe_id}')
 def patch_recipe(recipe_id: int, req: PatchRecipeRequest, current_user: dict = Depends(get_current_user)):
+    fields = req.model_fields_set
+    if not fields:
+        raise HTTPException(status_code=400, detail='No fields to update')
+    updates, params = [], []
+    if 'notes' in fields:
+        updates.append('notes = ?')
+        params.append(req.notes.strip() if req.notes else None)
+    if 'category' in fields:
+        updates.append('category = ?')
+        params.append(req.category.strip() if req.category else None)
+    if 'starred' in fields:
+        updates.append('starred = ?')
+        params.append(1 if req.starred else 0)
+    params += [recipe_id, current_user['id']]
     conn = get_conn()
     result = conn.execute(
-        'UPDATE recipes SET notes = ? WHERE id = ? AND user_id = ?',
-        (req.notes.strip() or None, recipe_id, current_user['id'])
+        f'UPDATE recipes SET {", ".join(updates)} WHERE id = ? AND user_id = ?',
+        params
     )
     conn.commit()
     conn.close()

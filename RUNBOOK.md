@@ -3,7 +3,7 @@
 ## Connect to the droplet
 
 ```bash
-ssh -i ~/.ssh/key josh@<droplet-ip>
+ssh -i ~/.ssh/key josh@162.243.70.152
 cd ~/recipeparse
 source venv/bin/activate
 ```
@@ -11,7 +11,7 @@ source venv/bin/activate
 Add this to `~/.ssh/config` on your local machine to shortcut it:
 ```
 Host recipeparse
-    HostName <droplet-ip>
+    HostName 162.243.70.152
     User josh
     IdentityFile ~/.ssh/key
 ```
