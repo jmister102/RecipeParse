@@ -40,5 +40,22 @@ def index():
     )
 
 
+@application.get('/sw.js')
+def service_worker():
+    return FileResponse(
+        os.path.join(BASE_DIR, 'static', 'sw.js'),
+        media_type='application/javascript',
+        headers={'Cache-Control': 'no-cache, no-store, must-revalidate'},
+    )
+
+
+@application.get('/manifest.json')
+def manifest():
+    return FileResponse(
+        os.path.join(BASE_DIR, 'static', 'manifest.json'),
+        media_type='application/manifest+json',
+    )
+
+
 if __name__ == '__main__':
     uvicorn.run('server:application', host='127.0.0.1', port=8001)
