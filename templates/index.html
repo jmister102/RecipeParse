@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="RecipeParse">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-  <link rel="stylesheet" href="static/style.css?v=11">
+  <link rel="stylesheet" href="static/style.css?v=12">
 </head>
 <body>
 
@@ -86,27 +86,27 @@
 
     <!-- Header -->
     <header class="site-header">
-      <div class="header-inner">
+      <div class="header-row1">
         <h1 class="site-title">RecipeParse</h1>
-        <div class="header-controls">
-          <input type="search" id="search-input" placeholder="Search recipes..." autocomplete="off">
-          <select id="category-filter">
-            <option value="">All categories</option>
-          </select>
-          <select id="sort-select">
-            <option value="date-desc">Newest first</option>
-            <option value="date-asc">Oldest first</option>
-            <option value="title">Title A–Z</option>
-          </select>
-          <button id="starred-filter-btn" class="btn-ghost starred-filter-btn" aria-pressed="false" title="Show favorites only">☆ Starred</button>
-          <button id="add-btn" class="btn-primary">+ Add Recipe</button>
-        </div>
+        <input type="search" id="search-input" placeholder="Search recipes..." autocomplete="off">
+        <button id="add-btn" class="btn-primary">+ Add Recipe</button>
         <div class="user-menu">
           <span id="user-label"></span>
           <button id="logout-btn" class="btn-ghost">Log out</button>
         </div>
       </div>
-      <div class="stats-bar" id="stats-bar"></div>
+      <div class="header-row2">
+        <select id="category-filter">
+          <option value="">All categories</option>
+        </select>
+        <select id="sort-select">
+          <option value="date-desc">Newest first</option>
+          <option value="date-asc">Oldest first</option>
+          <option value="title">Title A–Z</option>
+        </select>
+        <button id="starred-filter-btn" class="btn-ghost starred-filter-btn" aria-pressed="false" title="Show favorites only">☆ Starred</button>
+        <div class="stats-bar" id="stats-bar"></div>
+      </div>
     </header>
 
     <!-- Recipe Grid -->
@@ -200,6 +200,6 @@
     </div>
   </div>
 
-  <script src="static/app.js?v=11"></script>
+  <script src="static/app.js?v=12"></script>
 </body>
 </html>

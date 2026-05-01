@@ -742,6 +742,28 @@ starredFilterBtn.addEventListener('click', () => {
   applyFilters();
 });
 
+// ── Scroll-hide header ────────────────────────────────────
+
+(function () {
+  const header = document.querySelector('.site-header');
+  let lastY = 0;
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const y = window.scrollY;
+      if (y > lastY + 8 && y > 80) {
+        header.classList.add('header-hidden');
+      } else if (y < lastY - 5) {
+        header.classList.remove('header-hidden');
+      }
+      lastY = y;
+      ticking = false;
+    });
+  }, { passive: true });
+}());
+
 // ── Service Worker ────────────────────────────────────────
 
 if ('serviceWorker' in navigator) {

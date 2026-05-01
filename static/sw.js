@@ -1,9 +1,9 @@
-const CACHE = 'recipeparse-v1';
+const CACHE = 'recipeparse-v2';
 
 const PRECACHE = [
   '/',
-  '/static/app.js?v=10',
-  '/static/style.css?v=10',
+  '/static/app.js?v=12',
+  '/static/style.css?v=12',
   '/static/manifest.json',
   '/static/icons/icon-192.png',
   '/static/icons/icon-512.png',
