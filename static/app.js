@@ -567,6 +567,7 @@ detailOverlay.addEventListener('click', e => { if (e.target === detailOverlay) c
 
 function resetPhotoPanel() {
   photoFileInput.value = '';
+  pendingPhotoFile = null;
   photoSubmitBtn.disabled = true;
   photoDropzone.classList.remove('has-image', 'drag-over');
   photoDropInner.innerHTML = `
@@ -705,9 +706,11 @@ manualForm.addEventListener('submit', async e => {
 
 // ── Photo OCR ─────────────────────────────────────────────
 
+let pendingPhotoFile = null;
+
 function setPhotoPreview(file) {
+  pendingPhotoFile = file;
   const url = URL.createObjectURL(file);
-  // Replace dropzone inner with preview image
   photoDropInner.style.display = 'none';
   let img = photoDropzone.querySelector('.photo-preview');
   if (!img) {
@@ -721,7 +724,8 @@ function setPhotoPreview(file) {
   photoSubmitBtn.disabled = false;
 }
 
-photoDropzone.addEventListener('click', () => photoFileInput.click());
+// The dropzone is a <label> wrapping the file input, so clicking it natively
+// opens the picker — no programmatic .click() needed (that causes a double-trigger on iOS).
 photoDropzone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') photoFileInput.click(); });
 
 photoFileInput.addEventListener('change', () => {
@@ -742,11 +746,7 @@ photoDropzone.addEventListener('drop', e => {
 });
 
 photoSubmitBtn.addEventListener('click', async () => {
-  const file = photoFileInput.files[0] || (() => {
-    // File may have come from drag & drop — grab from preview src isn't possible,
-    // so we rely on the file input. If empty, no-op.
-    return null;
-  })();
+  const file = photoFileInput.files[0] || pendingPhotoFile;
   if (!file) return;
 
   photoSubmitBtn.disabled = true;
