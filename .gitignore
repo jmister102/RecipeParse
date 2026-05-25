@@ -14,6 +14,9 @@ data/*.db
 notes.json
 recipe_bookmarks.html
 
+# Imported recipe images (live on server, not in repo)
+static/imported/
+
 # Secrets / local config
 .env
 .env.*
