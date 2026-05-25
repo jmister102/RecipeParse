@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="RecipeParse">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-  <link rel="stylesheet" href="static/style.css?v=14">
+  <link rel="stylesheet" href="static/style.css?v=15">
 </head>
 <body>
 
@@ -81,6 +81,12 @@
     </div>
   </div>
 
+  <!-- Update banner (shown when cached JS is behind server) -->
+  <div id="update-banner" hidden>
+    A new version is available.
+    <button onclick="hardReload()">Update now</button>
+  </div>
+
   <!-- App View (shown when logged in) -->
   <div id="app-view" hidden>
 
@@ -92,6 +98,7 @@
         <button id="add-btn" class="btn-primary">+ Add Recipe</button>
         <div class="user-menu">
           <span id="user-label"></span>
+          <span class="app-version" id="app-version">v15</span>
           <button id="logout-btn" class="btn-ghost">Log out</button>
         </div>
       </div>
@@ -200,6 +207,6 @@
     </div>
   </div>
 
-  <script src="static/app.js?v=14"></script>
+  <script src="static/app.js?v=15"></script>
 </body>
 </html>

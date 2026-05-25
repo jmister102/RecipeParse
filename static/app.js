@@ -1,3 +1,7 @@
+// ── Version ───────────────────────────────────────────────
+
+const APP_VERSION = '15';
+
 // ── Auth state ────────────────────────────────────────────
 
 let authToken = localStorage.getItem('recipes_token');
@@ -82,6 +86,7 @@ function showApp(username) {
   userLabel.textContent = username;
   loadCategories();
   loadRecipes();
+  checkVersion();
 }
 
 function logout() {
@@ -820,6 +825,26 @@ starredFilterBtn.addEventListener('click', () => {
     });
   }, { passive: true });
 }());
+
+// ── Version check ─────────────────────────────────────────
+
+async function checkVersion() {
+  try {
+    const data = await fetch('/api/version').then(r => r.json());
+    document.getElementById('app-version').textContent = `v${APP_VERSION}`;
+    if (data.version !== APP_VERSION) {
+      document.getElementById('update-banner').hidden = false;
+    }
+  } catch (_) {}
+}
+
+async function hardReload() {
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(r => r.unregister()));
+  }
+  window.location.reload(true);
+}
 
 // ── Service Worker ────────────────────────────────────────
 

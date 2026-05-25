@@ -1,4 +1,5 @@
 import os
+import subprocess
 import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
@@ -7,6 +8,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+
+APP_VERSION = '15'
 
 from app.database import init_db
 from app.routes import router
@@ -38,6 +41,18 @@ def index():
         os.path.join(BASE_DIR, 'templates', 'index.html'),
         headers={'Cache-Control': 'no-cache, no-store, must-revalidate'},
     )
+
+
+@application.get('/api/version')
+def version():
+    try:
+        git_hash = subprocess.check_output(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            cwd=BASE_DIR, stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        git_hash = 'unknown'
+    return {'version': APP_VERSION, 'hash': git_hash}
 
 
 @application.get('/sw.js')
