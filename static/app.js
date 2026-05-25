@@ -353,7 +353,13 @@ async function openDetail(id) {
       <div class="detail-body">
         <div class="detail-title-row">
           <h2 class="detail-title">${esc(r.title || 'Untitled Recipe')}</h2>
-          <button class="detail-star${r.starred ? ' starred' : ''}" id="detail-star">${r.starred ? '★ Favorited' : '☆ Favorite'}</button>
+          <div class="detail-actions">
+            <button class="detail-star${r.starred ? ' starred' : ''}" id="detail-star">${r.starred ? '★ Favorited' : '☆ Favorite'}</button>
+            <div class="send-wrap" id="send-wrap">
+              <button class="btn-ghost btn-sm" id="send-btn">Send to...</button>
+              <div class="send-dropdown" id="send-dropdown" hidden></div>
+            </div>
+          </div>
         </div>
         <div class="detail-meta">
           <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.source_site || r.url)} ↗</a>
@@ -408,6 +414,57 @@ async function openDetail(id) {
         }
       } catch (err) {
         alert('Could not update favorite: ' + err.message);
+      }
+    });
+
+    // ── Send to user ──
+    const sendBtn      = document.getElementById('send-btn');
+    const sendDropdown = document.getElementById('send-dropdown');
+
+    sendBtn.addEventListener('click', async () => {
+      if (!sendDropdown.hidden) { sendDropdown.hidden = true; return; }
+      sendDropdown.innerHTML = '<span style="color:var(--text-muted);font-size:.85rem;padding:4px 0">Loading…</span>';
+      sendDropdown.hidden = false;
+      try {
+        const users = await fetchJson('api/users');
+        if (users.length === 0) {
+          sendDropdown.innerHTML = '<span style="color:var(--text-muted);font-size:.85rem">No other users</span>';
+          return;
+        }
+        sendDropdown.innerHTML = users.map(u =>
+          `<button class="send-user-btn" data-username="${esc(u)}">${esc(u)}</button>`
+        ).join('');
+        sendDropdown.querySelectorAll('.send-user-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const username = btn.dataset.username;
+            btn.disabled = true;
+            btn.textContent = 'Sending…';
+            try {
+              await fetchJson(`api/recipes/${id}/send`, {
+                method: 'POST',
+                body: JSON.stringify({ username }),
+              });
+              sendDropdown.hidden = true;
+              sendBtn.textContent = `Sent to ${username} ✓`;
+              sendBtn.disabled = true;
+              setTimeout(() => { sendBtn.textContent = 'Send to…'; sendBtn.disabled = false; }, 3000);
+            } catch (err) {
+              btn.textContent = username;
+              btn.disabled = false;
+              sendDropdown.innerHTML = `<span class="send-error">${esc(err.message)}</span>`;
+              setTimeout(() => { sendDropdown.hidden = true; sendBtn.textContent = 'Send to…'; }, 3000);
+            }
+          });
+        });
+      } catch (err) {
+        sendDropdown.innerHTML = `<span class="send-error">${esc(err.message)}</span>`;
+      }
+    });
+
+    document.addEventListener('click', function hideSend(e) {
+      if (!document.getElementById('send-wrap')?.contains(e.target)) {
+        sendDropdown.hidden = true;
+        document.removeEventListener('click', hideSend);
       }
     });
 

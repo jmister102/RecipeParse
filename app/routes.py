@@ -265,6 +265,78 @@ def add_manual_recipe(req: ManualRecipeRequest, current_user: dict = Depends(get
     return _row_to_detail(row)
 
 
+class SendRecipeRequest(BaseModel):
+    username: str
+
+
+@router.post('/recipes/{recipe_id}/send')
+def send_recipe(recipe_id: int, req: SendRecipeRequest, current_user: dict = Depends(get_current_user)):
+    username = req.username.strip().lower()
+    conn = get_conn()
+
+    # Verify recipe belongs to sender
+    src = conn.execute(
+        'SELECT * FROM recipes WHERE id = ? AND user_id = ?',
+        (recipe_id, current_user['id'])
+    ).fetchone()
+    if not src:
+        conn.close()
+        raise HTTPException(status_code=404, detail='Recipe not found')
+
+    # Find target user
+    target = conn.execute(
+        'SELECT id, username FROM users WHERE LOWER(username) = ?',
+        (username,)
+    ).fetchone()
+    if not target:
+        conn.close()
+        raise HTTPException(status_code=404, detail='User not found')
+    if target['id'] == current_user['id']:
+        conn.close()
+        raise HTTPException(status_code=400, detail='Cannot send a recipe to yourself')
+
+    # Check if target already has this recipe (by URL)
+    existing = conn.execute(
+        'SELECT id FROM recipes WHERE url = ? AND user_id = ?',
+        (src['url'], target['id'])
+    ).fetchone()
+    if existing:
+        conn.close()
+        raise HTTPException(status_code=409, detail=f'{target["username"]} already has this recipe')
+
+    conn.execute(
+        '''INSERT INTO recipes
+           (url, title, image_url, source_site, category, ingredients, instructions,
+            description, cook_time, yields, scrape_status, scrape_error, source_file, user_id)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+        (
+            src['url'], src['title'], src['image_url'], src['source_site'],
+            src['category'], src['ingredients'], src['instructions'],
+            src['description'], src['cook_time'], src['yields'],
+            src['scrape_status'], src['scrape_error'], src['source_file'],
+            target['id'],
+        )
+    )
+    conn.execute(
+        'INSERT INTO sent_recipes (recipe_id, from_user, to_user) VALUES (?,?,?)',
+        (recipe_id, current_user['id'], target['id'])
+    )
+    conn.commit()
+    conn.close()
+    return {'ok': True, 'sent_to': target['username']}
+
+
+@router.get('/users')
+def list_other_users(current_user: dict = Depends(get_current_user)):
+    conn = get_conn()
+    rows = conn.execute(
+        'SELECT username FROM users WHERE id != ? AND is_active = 1 ORDER BY username',
+        (current_user['id'],)
+    ).fetchall()
+    conn.close()
+    return [r['username'] for r in rows]
+
+
 @router.delete('/recipes/{recipe_id}')
 def delete_recipe(recipe_id: int, current_user: dict = Depends(get_current_user)):
     conn = get_conn()

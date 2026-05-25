@@ -823,6 +823,53 @@ body {
 .detail-star:hover { border-color: #f59e0b; color: #92400e; background: #fef9c3; }
 .detail-star.starred { background: #fef9c3; border-color: #f59e0b; color: #92400e; }
 
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.send-wrap { position: relative; }
+
+.send-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  z-index: 10;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.send-user-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  border-radius: 6px;
+  font-size: .9rem;
+  cursor: pointer;
+  color: var(--text);
+}
+.send-user-btn:hover { background: var(--bg); }
+.send-user-btn:disabled { color: var(--text-muted); cursor: default; }
+
+.send-error {
+  color: var(--danger);
+  font-size: .82rem;
+  padding: 4px 6px;
+}
+
 /* ── Category editor ─────────────────────────────── */
 .category-edit-wrap {
   display: inline-flex;

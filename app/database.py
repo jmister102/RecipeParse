@@ -51,5 +51,16 @@ def init_db():
         conn.execute('ALTER TABLE recipes ADD COLUMN notes TEXT')
     if 'starred' not in cols:
         conn.execute('ALTER TABLE recipes ADD COLUMN starred INTEGER DEFAULT 0')
+
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS sent_recipes (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            recipe_id   INTEGER NOT NULL REFERENCES recipes(id),
+            from_user   INTEGER NOT NULL REFERENCES users(id),
+            to_user     INTEGER NOT NULL REFERENCES users(id),
+            sent_at     TEXT DEFAULT (datetime('now'))
+        );
+    """)
+
     conn.commit()
     conn.close()
