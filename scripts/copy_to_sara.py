@@ -3,7 +3,10 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from app.database import get_conn
+from app.database import get_conn, init_db
+
+print("Running migrations...")
+init_db()
 
 conn = get_conn()
 

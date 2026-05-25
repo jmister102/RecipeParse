@@ -63,5 +63,41 @@ def init_db():
         );
     """)
 
+    # Migrate from globally-unique url to per-user unique (url, user_id).
+    # The original single-user schema had url UNIQUE; that blocks sharing.
+    existing_indexes = {row['name'] for row in conn.execute('PRAGMA index_list(recipes)').fetchall()}
+    if 'recipes_url_user' not in existing_indexes:
+        conn.executescript("""
+            CREATE TABLE recipes_new (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                url           TEXT NOT NULL,
+                title         TEXT,
+                image_url     TEXT,
+                source_site   TEXT,
+                category      TEXT,
+                ingredients   TEXT,
+                instructions  TEXT,
+                description   TEXT,
+                cook_time     TEXT,
+                yields        TEXT,
+                scrape_status TEXT DEFAULT 'pending',
+                scrape_error  TEXT,
+                date_added    TEXT DEFAULT (datetime('now')),
+                source_file   TEXT,
+                user_id       INTEGER REFERENCES users(id),
+                notes         TEXT,
+                starred       INTEGER DEFAULT 0
+            );
+            INSERT INTO recipes_new
+                SELECT id, url, title, image_url, source_site, category,
+                       ingredients, instructions, description, cook_time, yields,
+                       scrape_status, scrape_error, date_added, source_file,
+                       user_id, notes, starred
+                FROM recipes;
+            DROP TABLE recipes;
+            ALTER TABLE recipes_new RENAME TO recipes;
+            CREATE UNIQUE INDEX recipes_url_user ON recipes(url, user_id);
+        """)
+
     conn.commit()
     conn.close()
