@@ -272,9 +272,9 @@ class SendRecipeRequest(BaseModel):
 @router.post('/recipes/{recipe_id}/send')
 def send_recipe(recipe_id: int, req: SendRecipeRequest, current_user: dict = Depends(get_current_user)):
     username = req.username.strip().lower()
-    conn = get_conn()
 
-    # Verify recipe belongs to sender
+    # Read phase — close connection before any writes to avoid lock upgrade conflict
+    conn = get_conn()
     src = conn.execute(
         'SELECT * FROM recipes WHERE id = ? AND user_id = ?',
         (recipe_id, current_user['id'])
@@ -282,28 +282,25 @@ def send_recipe(recipe_id: int, req: SendRecipeRequest, current_user: dict = Dep
     if not src:
         conn.close()
         raise HTTPException(status_code=404, detail='Recipe not found')
-
-    # Find target user
     target = conn.execute(
         'SELECT id, username FROM users WHERE LOWER(username) = ?',
         (username,)
     ).fetchone()
-    if not target:
-        conn.close()
-        raise HTTPException(status_code=404, detail='User not found')
-    if target['id'] == current_user['id']:
-        conn.close()
-        raise HTTPException(status_code=400, detail='Cannot send a recipe to yourself')
-
-    # Check if target already has this recipe (by URL)
     existing = conn.execute(
         'SELECT id FROM recipes WHERE url = ? AND user_id = ?',
-        (src['url'], target['id'])
+        (src['url'], target['id'] if target else -1)
     ).fetchone()
+    conn.close()
+
+    if not target:
+        raise HTTPException(status_code=404, detail='User not found')
+    if target['id'] == current_user['id']:
+        raise HTTPException(status_code=400, detail='Cannot send a recipe to yourself')
     if existing:
-        conn.close()
         raise HTTPException(status_code=409, detail=f'{target["username"]} already has this recipe')
 
+    # Write phase — fresh connection with no prior read transaction
+    conn = get_conn()
     conn.execute(
         '''INSERT INTO recipes
            (url, title, image_url, source_site, category, ingredients, instructions,
