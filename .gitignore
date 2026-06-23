@@ -17,6 +17,9 @@ recipe_bookmarks.html
 # Imported recipe images (live on server, not in repo)
 static/imported/
 
+# User-uploaded recipe images (live on server, not in repo)
+static/uploads/
+
 # Secrets / local config
 .env
 .env.*

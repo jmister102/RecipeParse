@@ -1,6 +1,6 @@
 // ── Version ───────────────────────────────────────────────
 
-const APP_VERSION = '15';
+const APP_VERSION = '16';
 
 // ── Auth state ────────────────────────────────────────────
 
@@ -331,8 +331,26 @@ async function openDetail(id) {
   try {
     const r = await fetchJson(`api/recipes/${id}`);
     const hasFull = r.ingredients.length > 0 || r.instructions.length > 0;
-    const heroImg = r.image_url
-      ? `<img class="detail-hero" src="${esc(r.image_url)}" alt="" onerror="this.remove()">` : '';
+    const heroInner = r.image_url
+      ? `<img class="detail-hero" id="detail-hero-img" src="${esc(r.image_url)}" alt="" onerror="this.style.display='none'">`
+      : `<div class="detail-hero-placeholder" id="detail-hero-img">🍽️</div>`;
+    const heroImg = `
+      <div class="detail-hero-wrap" id="detail-hero-wrap">
+        ${heroInner}
+        <button class="detail-photo-btn" id="detail-photo-btn">📷 ${r.image_url ? 'Change photo' : 'Add photo'}</button>
+      </div>
+      <div class="photo-editor" id="photo-editor" hidden>
+        <div class="photo-editor-row">
+          <label class="btn-ghost btn-sm photo-upload-label">Upload file
+            <input type="file" id="detail-photo-file" accept="image/*" hidden>
+          </label>
+          <input type="url" id="detail-photo-url" class="photo-url-input" placeholder="…or paste an image URL">
+          <button class="btn-primary btn-sm" id="detail-photo-save">Save URL</button>
+          <button class="btn-ghost btn-sm photo-remove-btn" id="detail-photo-remove"${r.image_url ? '' : ' hidden'}>Remove</button>
+          <button class="btn-ghost btn-sm" id="detail-photo-cancel">Cancel</button>
+        </div>
+        <span class="photo-editor-status" id="photo-editor-status"></span>
+      </div>`;
     const cookMeta  = r.cook_time ? `· ${esc(r.cook_time)}` : '';
     const yieldMeta = r.yields   ? `· Serves ${esc(r.yields)}` : '';
     const ingredientsHtml  = r.ingredients.length > 0
@@ -554,6 +572,133 @@ async function openDetail(id) {
           notesStatus.textContent = 'Save failed';
         }
       }, 800);
+    });
+
+    // ── Photo editing ──
+    const heroWrap        = document.getElementById('detail-hero-wrap');
+    const photoBtn        = document.getElementById('detail-photo-btn');
+    const photoEditor     = document.getElementById('photo-editor');
+    const photoFile       = document.getElementById('detail-photo-file');
+    const photoUrlInput   = document.getElementById('detail-photo-url');
+    const photoSaveBtn    = document.getElementById('detail-photo-save');
+    const photoRemoveBtn  = document.getElementById('detail-photo-remove');
+    const photoCancelBtn  = document.getElementById('detail-photo-cancel');
+    const photoStatus     = document.getElementById('photo-editor-status');
+
+    function buildHeroEl(url) {
+      let el;
+      if (url) {
+        el = document.createElement('img');
+        el.className = 'detail-hero';
+        el.alt = '';
+        el.src = url;
+        el.onerror = function () { this.style.display = 'none'; };
+      } else {
+        el = document.createElement('div');
+        el.className = 'detail-hero-placeholder';
+        el.textContent = '🍽️';
+      }
+      el.id = 'detail-hero-img';
+      return el;
+    }
+
+    function updateCardImage(url) {
+      const cardEl = gridContainer.querySelector(`[data-id="${id}"]`);
+      if (!cardEl) return;
+      const cur = cardEl.querySelector('.card-img, .card-img-placeholder');
+      if (!cur) return;
+      let el;
+      if (url) {
+        el = document.createElement('img');
+        el.className = 'card-img';
+        el.alt = '';
+        el.loading = 'lazy';
+        el.src = url;
+        el.setAttribute('onerror', 'this.replaceWith(placeholder())');
+      } else {
+        el = document.createElement('div');
+        el.className = 'card-img-placeholder';
+        el.textContent = '🍽️';
+      }
+      cur.replaceWith(el);
+    }
+
+    function applyNewImage(newUrl) {
+      r.image_url = newUrl || null;
+      const cur = document.getElementById('detail-hero-img');
+      const fresh = buildHeroEl(r.image_url);
+      if (cur) cur.replaceWith(fresh);
+      else heroWrap.insertBefore(fresh, photoBtn);
+      photoBtn.textContent = `📷 ${r.image_url ? 'Change photo' : 'Add photo'}`;
+      photoRemoveBtn.hidden = !r.image_url;
+      const recipeInAll = allRecipes.find(rc => rc.id === id);
+      if (recipeInAll) recipeInAll.image_url = r.image_url;
+      updateCardImage(r.image_url);
+    }
+
+    photoBtn.addEventListener('click', () => {
+      photoEditor.hidden = !photoEditor.hidden;
+      photoStatus.textContent = '';
+      if (!photoEditor.hidden) {
+        photoUrlInput.value = r.image_url || '';
+        photoUrlInput.focus();
+      }
+    });
+    photoCancelBtn.addEventListener('click', () => { photoEditor.hidden = true; });
+
+    photoFile.addEventListener('change', async () => {
+      const file = photoFile.files[0];
+      if (!file) return;
+      photoStatus.textContent = 'Uploading…';
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const res = await fetch(`api/recipes/${id}/image`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}` },
+          body: form,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        applyNewImage(data.image_url);
+        photoEditor.hidden = true;
+      } catch (err) {
+        photoStatus.textContent = err.message;
+      } finally {
+        photoFile.value = '';
+      }
+    });
+
+    photoSaveBtn.addEventListener('click', async () => {
+      const newUrl = photoUrlInput.value.trim();
+      photoSaveBtn.disabled = true;
+      photoStatus.textContent = 'Saving…';
+      try {
+        await fetchJson(`api/recipes/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ image_url: newUrl }),
+        });
+        applyNewImage(newUrl);
+        photoEditor.hidden = true;
+      } catch (err) {
+        photoStatus.textContent = err.message;
+      } finally {
+        photoSaveBtn.disabled = false;
+      }
+    });
+
+    photoRemoveBtn.addEventListener('click', async () => {
+      photoStatus.textContent = 'Removing…';
+      try {
+        await fetchJson(`api/recipes/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ image_url: '' }),
+        });
+        applyNewImage('');
+        photoEditor.hidden = true;
+      } catch (err) {
+        photoStatus.textContent = err.message;
+      }
     });
   } catch (err) {
     detailContent.innerHTML = `<div class="detail-body"><p style="color:var(--danger)">Error: ${esc(err.message)}</p></div>`;

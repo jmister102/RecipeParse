@@ -184,17 +184,78 @@ async def ocr_recipe(
     return _row_to_detail(row)
 
 
+@router.post('/recipes/{recipe_id}/image')
+async def upload_recipe_image(
+    recipe_id: int,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    from .images import save_recipe_image, delete_recipe_image
+
+    content_type = (file.content_type or '').split(';')[0].strip().lower()
+    if content_type not in ALLOWED_IMAGE_TYPES and not content_type.startswith('image/'):
+        raise HTTPException(status_code=415, detail='Please upload an image file (JPEG, PNG, WebP, etc.)')
+
+    image_bytes = await file.read()
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail='Image too large (max 20 MB)')
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail='Empty file')
+
+    conn = get_conn()
+    row = conn.execute(
+        'SELECT image_url FROM recipes WHERE id = ? AND user_id = ?',
+        (recipe_id, current_user['id'])
+    ).fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail='Recipe not found')
+
+    try:
+        new_url = save_recipe_image(image_bytes)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    conn = get_conn()
+    conn.execute(
+        'UPDATE recipes SET image_url = ? WHERE id = ? AND user_id = ?',
+        (new_url, recipe_id, current_user['id'])
+    )
+    conn.commit()
+    conn.close()
+
+    delete_recipe_image(row['image_url'])  # clean up any prior upload
+    return {'image_url': new_url}
+
+
 class PatchRecipeRequest(BaseModel):
     notes: Optional[str] = None
     category: Optional[str] = None
     starred: Optional[bool] = None
+    image_url: Optional[str] = None
 
 
 @router.patch('/recipes/{recipe_id}')
 def patch_recipe(recipe_id: int, req: PatchRecipeRequest, current_user: dict = Depends(get_current_user)):
+    from .images import delete_recipe_image
+
     fields = req.model_fields_set
     if not fields:
         raise HTTPException(status_code=400, detail='No fields to update')
+
+    # When replacing the image, remember the old one so we can clean it up.
+    old_image = None
+    if 'image_url' in fields:
+        conn = get_conn()
+        row = conn.execute(
+            'SELECT image_url FROM recipes WHERE id = ? AND user_id = ?',
+            (recipe_id, current_user['id'])
+        ).fetchone()
+        conn.close()
+        if not row:
+            raise HTTPException(status_code=404, detail='Recipe not found')
+        old_image = row['image_url']
+
     updates, params = [], []
     if 'notes' in fields:
         updates.append('notes = ?')
@@ -205,6 +266,9 @@ def patch_recipe(recipe_id: int, req: PatchRecipeRequest, current_user: dict = D
     if 'starred' in fields:
         updates.append('starred = ?')
         params.append(1 if req.starred else 0)
+    if 'image_url' in fields:
+        updates.append('image_url = ?')
+        params.append(req.image_url.strip() if req.image_url else None)
     params += [recipe_id, current_user['id']]
     conn = get_conn()
     result = conn.execute(
@@ -215,6 +279,10 @@ def patch_recipe(recipe_id: int, req: PatchRecipeRequest, current_user: dict = D
     conn.close()
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail='Recipe not found')
+
+    # Remove the old uploaded file once the new value is committed.
+    if 'image_url' in fields and old_image != (req.image_url.strip() if req.image_url else None):
+        delete_recipe_image(old_image)
     return {'ok': True}
 
 
@@ -336,7 +404,13 @@ def list_other_users(current_user: dict = Depends(get_current_user)):
 
 @router.delete('/recipes/{recipe_id}')
 def delete_recipe(recipe_id: int, current_user: dict = Depends(get_current_user)):
+    from .images import delete_recipe_image
+
     conn = get_conn()
+    row = conn.execute(
+        'SELECT image_url FROM recipes WHERE id = ? AND user_id = ?',
+        (recipe_id, current_user['id'])
+    ).fetchone()
     result = conn.execute(
         'DELETE FROM recipes WHERE id = ? AND user_id = ?',
         (recipe_id, current_user['id'])
@@ -345,6 +419,16 @@ def delete_recipe(recipe_id: int, current_user: dict = Depends(get_current_user)
     conn.close()
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail='Recipe not found')
+
+    # Only remove the file if no other recipe (e.g. a sent copy) still references it.
+    conn = get_conn()
+    still_used = conn.execute(
+        'SELECT 1 FROM recipes WHERE image_url = ? LIMIT 1',
+        (row['image_url'],)
+    ).fetchone()
+    conn.close()
+    if not still_used:
+        delete_recipe_image(row['image_url'])
     return {'ok': True}
 
 

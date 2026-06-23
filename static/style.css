@@ -526,6 +526,68 @@ body {
   display: block;
 }
 
+.detail-hero-wrap {
+  position: relative;
+}
+
+.detail-hero-placeholder {
+  width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  background: var(--bg);
+  border-radius: 14px 14px 0 0;
+}
+
+.detail-photo-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 6px 12px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(0,0,0,.55);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  backdrop-filter: blur(2px);
+  transition: background .15s;
+}
+.detail-photo-btn:hover { background: rgba(0,0,0,.75); }
+
+.photo-editor {
+  padding: 14px 28px 0;
+}
+.photo-editor-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.photo-upload-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.photo-url-input {
+  flex: 1 1 200px;
+  min-width: 140px;
+  padding: 6px 10px;
+  font-size: .85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.photo-remove-btn { color: var(--danger); }
+.photo-editor-status {
+  display: block;
+  margin-top: 8px;
+  font-size: .8rem;
+  color: var(--text-muted);
+}
+
 .detail-body {
   padding: 24px 28px 32px;
 }
