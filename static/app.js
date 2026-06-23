@@ -1,6 +1,6 @@
 // ── Version ───────────────────────────────────────────────
 
-const APP_VERSION = '17';
+const APP_VERSION = '18';
 
 // ── Auth state ────────────────────────────────────────────
 
@@ -12,6 +12,10 @@ let currentUser = null;
 let allRecipes = [];
 let filteredRecipes = [];
 let starFilterActive = false;
+
+// Recipes currently open in the detail modal's tab bar
+let openTabs = [];        // [{ id, title }]
+let activeTabId = null;
 
 // ── DOM refs ──────────────────────────────────────────────
 
@@ -34,6 +38,11 @@ const wakeLockBtn        = document.getElementById('wake-lock-btn');
 const detailOverlay = document.getElementById('detail-overlay');
 const detailContent = document.getElementById('detail-content');
 const detailClose   = document.getElementById('detail-close');
+const detailTabbar    = document.getElementById('detail-tabbar');
+const detailTabs      = document.getElementById('detail-tabs');
+const tabPicker       = document.getElementById('tab-picker');
+const tabPickerSearch = document.getElementById('tab-picker-search');
+const tabPickerList   = document.getElementById('tab-picker-list');
 
 const addOverlay    = document.getElementById('add-overlay');
 const addClose      = document.getElementById('add-close');
@@ -323,14 +332,85 @@ async function loadCategories() {
   } catch (_) {}
 }
 
-// ── Detail modal ──────────────────────────────────────────
+// ── Detail modal & tabs ───────────────────────────────────
 
-async function openDetail(id) {
-  detailContent.innerHTML = '<div class="loading" style="padding:60px">Loading…</div>';
+function renderDetailTabs() {
+  const multi = openTabs.length > 1;
+  const chips = openTabs.map(t => `
+    <button class="detail-tab${t.id === activeTabId ? ' active' : ''}" data-id="${t.id}">
+      <span class="detail-tab-title">${esc(t.title || 'Recipe')}</span>
+      ${multi ? `<span class="detail-tab-close" data-close="${t.id}" role="button" aria-label="Close tab" title="Close tab">✕</span>` : ''}
+    </button>`).join('');
+  detailTabs.innerHTML = chips +
+    `<button class="detail-tab-add" id="detail-tab-add" title="Open another recipe alongside">${multi ? '＋' : '＋ Open another'}</button>`;
+
+  detailTabs.querySelectorAll('.detail-tab').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const closeEl = e.target.closest('.detail-tab-close');
+      if (closeEl) { e.stopPropagation(); closeTab(Number(closeEl.dataset.close)); return; }
+      const tid = Number(btn.dataset.id);
+      if (tid !== activeTabId) openDetail(tid, false);
+    });
+  });
+  document.getElementById('detail-tab-add').addEventListener('click', toggleTabPicker);
+}
+
+function toggleTabPicker() {
+  if (!tabPicker.hidden) { tabPicker.hidden = true; return; }
+  tabPickerSearch.value = '';
+  renderTabPickerList('');
+  tabPicker.hidden = false;
+  tabPickerSearch.focus();
+}
+
+function renderTabPickerList(q) {
+  const ql = (q || '').trim().toLowerCase();
+  const items = allRecipes
+    .filter(r => !openTabs.some(t => t.id === r.id))
+    .filter(r => !ql
+      || (r.title || '').toLowerCase().includes(ql)
+      || (r.source_site || '').toLowerCase().includes(ql)
+      || (r.category || '').toLowerCase().includes(ql))
+    .slice(0, 50);
+  if (!items.length) {
+    tabPickerList.innerHTML = `<div class="tab-picker-empty">${ql ? 'No matching recipes.' : 'No other recipes to open.'}</div>`;
+    return;
+  }
+  tabPickerList.innerHTML = items.map(r => `
+    <button class="tab-picker-item" data-id="${r.id}">
+      <span class="tab-picker-item-title">${esc(r.title || 'Untitled Recipe')}</span>
+      <span class="tab-picker-item-meta">${esc(r.category || r.source_site || '')}</span>
+    </button>`).join('');
+  tabPickerList.querySelectorAll('.tab-picker-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabPicker.hidden = true;
+      openDetail(Number(btn.dataset.id), true);
+    });
+  });
+}
+
+function closeTab(id) {
+  openTabs = openTabs.filter(t => t.id !== id);
+  if (openTabs.length === 0) { closeDetail(); return; }
+  if (activeTabId === id) openDetail(openTabs[openTabs.length - 1].id, false);
+  else renderDetailTabs();
+}
+
+async function openDetail(id, addTab = true) {
+  id = Number(id);
   detailOverlay.hidden = false;
+  detailTabbar.hidden = false;
+  tabPicker.hidden = true;
   document.body.style.overflow = 'hidden';
+  activeTabId = id;
+  if (addTab && !openTabs.some(t => t.id === id)) openTabs.push({ id, title: '' });
+  renderDetailTabs();
+  detailContent.innerHTML = '<div class="loading" style="padding:60px">Loading…</div>';
   try {
     const r = await fetchJson(`api/recipes/${id}`);
+    if (activeTabId !== id) return;  // user switched tabs while loading
+    const tab = openTabs.find(t => t.id === id);
+    if (tab) { tab.title = r.title || 'Recipe'; renderDetailTabs(); }
     const hasFull = r.ingredients.length > 0 || r.instructions.length > 0;
     const heroInner = r.image_url
       ? `<img class="detail-hero" id="detail-hero-img" src="${esc(r.image_url)}" alt="" onerror="this.style.display='none'">`
@@ -410,6 +490,8 @@ async function openDetail(id) {
           <span class="notes-status" id="notes-status"></span>
         </div>
       </div>`;
+
+    detailOverlay.scrollTop = 0;  // show the newly-opened recipe from the top
 
     // ── Star toggle ──
     const detailStar = document.getElementById('detail-star');
@@ -708,11 +790,16 @@ async function openDetail(id) {
 
 function closeDetail() {
   detailOverlay.hidden = true;
+  detailTabbar.hidden = true;
+  tabPicker.hidden = true;
   document.body.style.overflow = '';
+  openTabs = [];
+  activeTabId = null;
 }
 
 detailClose.addEventListener('click', closeDetail);
 detailOverlay.addEventListener('click', e => { if (e.target === detailOverlay) closeDetail(); });
+tabPickerSearch.addEventListener('input', e => renderTabPickerList(e.target.value));
 
 // ── Add recipe ────────────────────────────────────────────
 
@@ -932,7 +1019,8 @@ photoSubmitBtn.addEventListener('click', async () => {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (!detailOverlay.hidden) closeDetail();
+    if (!tabPicker.hidden) tabPicker.hidden = true;
+    else if (!detailOverlay.hidden) closeDetail();
     else if (!addOverlay.hidden) closeAdd();
   }
 });
