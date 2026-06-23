@@ -9,7 +9,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-APP_VERSION = '16'
+APP_VERSION = '17'
 
 from app.database import init_db
 from app.routes import router

@@ -1,6 +1,6 @@
 // ── Version ───────────────────────────────────────────────
 
-const APP_VERSION = '16';
+const APP_VERSION = '17';
 
 // ── Auth state ────────────────────────────────────────────
 
@@ -29,6 +29,7 @@ const loading        = document.getElementById('loading');
 const emptyState     = document.getElementById('empty-state');
 const statsBar           = document.getElementById('stats-bar');
 const starredFilterBtn   = document.getElementById('starred-filter-btn');
+const wakeLockBtn        = document.getElementById('wake-lock-btn');
 
 const detailOverlay = document.getElementById('detail-overlay');
 const detailContent = document.getElementById('detail-content');
@@ -935,6 +936,54 @@ document.addEventListener('keydown', e => {
     else if (!addOverlay.hidden) closeAdd();
   }
 });
+
+// ── Keep screen awake ─────────────────────────────────────
+// Uses the Screen Wake Lock API. The OS auto-releases the lock whenever the
+// tab is hidden, so we re-acquire it when the page becomes visible again.
+
+const wakeLockSupported = 'wakeLock' in navigator;
+let wakeLock = null;
+let wakeLockDesired = localStorage.getItem('recipes_wakelock') === '1';
+
+async function acquireWakeLock() {
+  if (!wakeLockSupported || wakeLock || document.visibilityState !== 'visible') return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch (_) {
+    wakeLock = null;
+  }
+}
+
+async function releaseWakeLock() {
+  if (!wakeLock) return;
+  try { await wakeLock.release(); } catch (_) {}
+  wakeLock = null;
+}
+
+function updateWakeLockBtn() {
+  wakeLockBtn.classList.toggle('active', wakeLockDesired);
+  wakeLockBtn.setAttribute('aria-pressed', wakeLockDesired);
+  wakeLockBtn.textContent = wakeLockDesired ? '💡 Screen staying on' : '💡 Keep screen on';
+}
+
+if (wakeLockSupported) {
+  wakeLockBtn.hidden = false;
+  updateWakeLockBtn();
+  if (wakeLockDesired) acquireWakeLock();
+
+  wakeLockBtn.addEventListener('click', async () => {
+    wakeLockDesired = !wakeLockDesired;
+    localStorage.setItem('recipes_wakelock', wakeLockDesired ? '1' : '0');
+    if (wakeLockDesired) await acquireWakeLock();
+    else await releaseWakeLock();
+    updateWakeLockBtn();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (wakeLockDesired && document.visibilityState === 'visible') acquireWakeLock();
+  });
+}
 
 // ── Event wiring ──────────────────────────────────────────
 

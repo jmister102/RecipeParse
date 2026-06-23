@@ -99,7 +99,7 @@ body {
   }
   .header-row2::-webkit-scrollbar { display: none; }
 
-  #category-filter, #sort-select, .starred-filter-btn { flex-shrink: 0; }
+  #category-filter, #sort-select, .starred-filter-btn, .wake-lock-btn { flex-shrink: 0; }
   .stats-bar { display: none; }
 }
 
@@ -851,6 +851,13 @@ body {
 /* ── Starred filter button ───────────────────────── */
 .starred-filter-btn { white-space: nowrap; }
 .starred-filter-btn.active {
+  background: #fef9c3;
+  border-color: #ca8a04;
+  color: #92400e;
+}
+
+.wake-lock-btn { white-space: nowrap; }
+.wake-lock-btn.active {
   background: #fef9c3;
   border-color: #ca8a04;
   color: #92400e;

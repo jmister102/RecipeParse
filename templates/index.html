@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="RecipeParse">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-  <link rel="stylesheet" href="static/style.css?v=16">
+  <link rel="stylesheet" href="static/style.css?v=17">
 </head>
 <body>
 
@@ -98,7 +98,7 @@
         <button id="add-btn" class="btn-primary">+ Add Recipe</button>
         <div class="user-menu">
           <span id="user-label"></span>
-          <span class="app-version" id="app-version">v16</span>
+          <span class="app-version" id="app-version">v17</span>
           <button id="logout-btn" class="btn-ghost">Log out</button>
         </div>
       </div>
@@ -112,6 +112,7 @@
           <option value="title">Title A–Z</option>
         </select>
         <button id="starred-filter-btn" class="btn-ghost starred-filter-btn" aria-pressed="false" title="Show favorites only">☆ Starred</button>
+        <button id="wake-lock-btn" class="btn-ghost wake-lock-btn" aria-pressed="false" title="Keep the screen awake while cooking" hidden>💡 Keep screen on</button>
         <div class="stats-bar" id="stats-bar"></div>
       </div>
     </header>
@@ -207,6 +208,6 @@
     </div>
   </div>
 
-  <script src="static/app.js?v=16"></script>
+  <script src="static/app.js?v=17"></script>
 </body>
 </html>
