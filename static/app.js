@@ -1,6 +1,6 @@
 // ── Version ───────────────────────────────────────────────
 
-const APP_VERSION = '18';
+const APP_VERSION = '19';
 
 // ── Auth state ────────────────────────────────────────────
 
@@ -34,6 +34,7 @@ const emptyState     = document.getElementById('empty-state');
 const statsBar           = document.getElementById('stats-bar');
 const starredFilterBtn   = document.getElementById('starred-filter-btn');
 const wakeLockBtn        = document.getElementById('wake-lock-btn');
+const themeBtn           = document.getElementById('theme-btn');
 
 const detailOverlay = document.getElementById('detail-overlay');
 const detailContent = document.getElementById('detail-content');
@@ -1023,6 +1024,32 @@ document.addEventListener('keydown', e => {
     else if (!detailOverlay.hidden) closeDetail();
     else if (!addOverlay.hidden) closeAdd();
   }
+});
+
+// ── Dark mode ─────────────────────────────────────────────
+// The initial theme is applied by an inline <head> script (avoids a flash);
+// here we just keep the button label, <meta theme-color>, and localStorage
+// in sync as the user toggles.
+
+const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+
+function isDark() {
+  return document.documentElement.getAttribute('data-theme') === 'dark';
+}
+
+function updateThemeBtn() {
+  const dark = isDark();
+  themeBtn.textContent = dark ? '☀️ Light' : '🌙 Dark';
+  themeBtn.setAttribute('aria-pressed', dark);
+  if (themeColorMeta) themeColorMeta.setAttribute('content', dark ? '#16181c' : '#2563eb');
+}
+
+updateThemeBtn();
+themeBtn.addEventListener('click', () => {
+  const dark = !isDark();
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  localStorage.setItem('recipes_theme', dark ? 'dark' : 'light');
+  updateThemeBtn();
 });
 
 // ── Keep screen awake ─────────────────────────────────────
