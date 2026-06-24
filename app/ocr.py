@@ -7,6 +7,13 @@ import re
 import anthropic
 from PIL import Image
 
+# Enable decoding of HEIC/HEIF (iPhone camera default) so OCR accepts them too.
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass
+
 # claude-haiku-4-5 is used to keep per-extraction cost low (~$0.001/image).
 # Upgrade to claude-sonnet-4-6 here if accuracy needs improvement.
 _MODEL = 'claude-haiku-4-5-20251001'

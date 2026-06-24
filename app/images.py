@@ -4,6 +4,14 @@ import uuid
 
 from PIL import Image, ImageOps
 
+# Enable decoding of HEIC/HEIF (the default format for iPhone camera photos).
+# Without this, Pillow can't read them and uploads from iOS fail.
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass
+
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads')
 _MAX_DIM = 1600  # plenty for a hero image; keeps files small
 

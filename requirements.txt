@@ -8,4 +8,5 @@ PyJWT>=2.8
 slowapi>=0.1
 anthropic>=0.97
 pillow>=10.0
+pillow-heif>=0.16
 python-multipart>=0.0.9
