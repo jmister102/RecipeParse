@@ -1,6 +1,6 @@
 // ── Version ───────────────────────────────────────────────
 
-const APP_VERSION = '19';
+const APP_VERSION = '20';
 
 // ── Auth state ────────────────────────────────────────────
 
@@ -416,11 +416,10 @@ async function openDetail(id, addTab = true) {
     const heroInner = r.image_url
       ? `<img class="detail-hero" id="detail-hero-img" src="${esc(r.image_url)}" alt="" onerror="this.style.display='none'">`
       : `<div class="detail-hero-placeholder" id="detail-hero-img">🍽️</div>`;
-    const heroImg = `
-      <div class="detail-hero-wrap" id="detail-hero-wrap">
-        ${heroInner}
-        <button class="detail-photo-btn" id="detail-photo-btn">📷 ${r.image_url ? 'Change photo' : 'Add photo'}</button>
-      </div>
+    const heroImg = `<div class="detail-hero-wrap" id="detail-hero-wrap">${heroInner}</div>`;
+    // Photo editor lives in the body flow (not on the hero) so it can never be
+    // hidden behind the sticky tab bar or scrolled out of reach.
+    const photoEditorHtml = `
       <div class="photo-editor" id="photo-editor" hidden>
         <div class="photo-editor-row">
           <label class="btn-ghost btn-sm photo-upload-label">Upload file
@@ -459,6 +458,7 @@ async function openDetail(id, addTab = true) {
         <div class="detail-title-row">
           <h2 class="detail-title">${esc(r.title || 'Untitled Recipe')}</h2>
           <div class="detail-actions">
+            <button class="btn-ghost btn-sm" id="detail-photo-btn">📷 ${r.image_url ? 'Change photo' : 'Add photo'}</button>
             <button class="detail-star${r.starred ? ' starred' : ''}" id="detail-star">${r.starred ? '★ Favorited' : '☆ Favorite'}</button>
             <div class="send-wrap" id="send-wrap">
               <button class="btn-ghost btn-sm" id="send-btn">Send to...</button>
@@ -466,6 +466,7 @@ async function openDetail(id, addTab = true) {
             </div>
           </div>
         </div>
+        ${photoEditorHtml}
         <div class="detail-meta">
           <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.source_site || r.url)} ↗</a>
           <span class="category-edit-wrap">
@@ -712,7 +713,7 @@ async function openDetail(id, addTab = true) {
       const cur = document.getElementById('detail-hero-img');
       const fresh = buildHeroEl(r.image_url);
       if (cur) cur.replaceWith(fresh);
-      else heroWrap.insertBefore(fresh, photoBtn);
+      else heroWrap.appendChild(fresh);
       photoBtn.textContent = `📷 ${r.image_url ? 'Change photo' : 'Add photo'}`;
       photoRemoveBtn.hidden = !r.image_url;
       const recipeInAll = allRecipes.find(rc => rc.id === id);

@@ -670,25 +670,12 @@ body {
   background: var(--bg);
 }
 
-.detail-photo-btn {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  padding: 6px 12px;
-  font-size: .8rem;
-  font-weight: 600;
-  color: #fff;
-  background: rgba(0,0,0,.55);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  backdrop-filter: blur(2px);
-  transition: background .15s;
-}
-.detail-photo-btn:hover { background: rgba(0,0,0,.75); }
-
 .photo-editor {
-  padding: 14px 28px 0;
+  margin: 4px 0 16px;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 .photo-editor-row {
   display: flex;
