@@ -1,4 +1,6 @@
-const CACHE = 'recipeparse-v2';
+// v3 evicts any /llcheck/ responses this worker cached before it learned to
+// keep out of that app's way.
+const CACHE = 'recipeparse-v3';
 
 const PRECACHE = [
   '/',
@@ -31,6 +33,19 @@ self.addEventListener('fetch', event => {
 
   // Only handle same-origin requests
   if (url.origin !== self.location.origin) return;
+
+  // llcheck is a different app sharing this origin at /llcheck/, with its own
+  // service worker scoped there. Leave its requests alone entirely.
+  //
+  // Two reasons, and the second is the serious one. The catch-all at the bottom
+  // is cache-first, and /llcheck/api/... does not match the /api/ test above,
+  // so live Lightning Lane return times would be cached and replayed as
+  // current — that app suppresses a stale reading rather than show it, because
+  // acting on one means walking across a park for a pass that no longer
+  // exists. And nothing here catches a failed fetch, so on a flaky network a
+  // navigation rejects and the browser shows ERR_FAILED instead of letting
+  // that app render its own error state.
+  if (url.pathname === '/llcheck' || url.pathname.startsWith('/llcheck/')) return;
 
   // API: network first, fall back to cache for offline read
   if (url.pathname.startsWith('/api/')) {
